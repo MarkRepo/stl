@@ -38,6 +38,8 @@ __STL_BEGIN_NAMESPACE
 
 // Heap-manipulation functions: push_heap, pop_heap, make_heap, sort_heap.
 
+//2018-04-04 by wfq
+//insert value to a max-heap which root is in topIndex. 
 template <class _RandomAccessIterator, class _Distance, class _Tp>
 void 
 __push_heap(_RandomAccessIterator __first,
@@ -52,6 +54,8 @@ __push_heap(_RandomAccessIterator __first,
   *(__first + __holeIndex) = __value;
 }
 
+//2018-04-08 add by wufq
+//add position (last-1) element to max-heap heap(first ~ last-2). 
 template <class _RandomAccessIterator, class _Distance, class _Tp>
 inline void 
 __push_heap_aux(_RandomAccessIterator __first,
@@ -72,6 +76,8 @@ push_heap(_RandomAccessIterator __first, _RandomAccessIterator __last)
                   __DISTANCE_TYPE(__first), __VALUE_TYPE(__first));
 }
 
+//2018-04-08 by wufq
+//use __comp to compare element
 template <class _RandomAccessIterator, class _Distance, class _Tp, 
           class _Compare>
 void
@@ -108,6 +114,8 @@ push_heap(_RandomAccessIterator __first, _RandomAccessIterator __last,
                   __DISTANCE_TYPE(__first), __VALUE_TYPE(__first));
 }
 
+//2018-04-08 by wfq
+//delete __topIndex, adjust max-heap，insert __value
 template <class _RandomAccessIterator, class _Distance, class _Tp>
 void 
 __adjust_heap(_RandomAccessIterator __first, _Distance __holeIndex,
@@ -122,6 +130,9 @@ __adjust_heap(_RandomAccessIterator __first, _Distance __holeIndex,
     __holeIndex = __secondChild;
     __secondChild = 2 * (__secondChild + 1);
   }
+  //2018-04-08 by wufq
+  //if __secondChild == __len , then holeIndex has one child, else has no child.
+  //(first+len) is not in heap(topIndex).
   if (__secondChild == __len) {
     *(__first + __holeIndex) = *(__first + (__secondChild - 1));
     __holeIndex = __secondChild - 1;
@@ -129,6 +140,8 @@ __adjust_heap(_RandomAccessIterator __first, _Distance __holeIndex,
   __push_heap(__first, __holeIndex, __topIndex, __value);
 }
 
+//2018-04-08 by wfq
+//max-heap(first ~ last-1), pop first, insert __value to max-heap
 template <class _RandomAccessIterator, class _Tp, class _Distance>
 inline void 
 __pop_heap(_RandomAccessIterator __first, _RandomAccessIterator __last,
@@ -138,6 +151,8 @@ __pop_heap(_RandomAccessIterator __first, _RandomAccessIterator __last,
   __adjust_heap(__first, _Distance(0), _Distance(__last - __first), __value);
 }
 
+//2018-04-08 by wfq
+//max-heap(first ~ last-2), pop  *first into (last-1), insert *(last-1) to max-heap
 template <class _RandomAccessIterator, class _Tp>
 inline void 
 __pop_heap_aux(_RandomAccessIterator __first, _RandomAccessIterator __last,

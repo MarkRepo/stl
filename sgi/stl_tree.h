@@ -53,12 +53,21 @@ iterators invalidated are those referring to the deleted node.
 
 */
 
+/*  2018-04-09 add by wfq
+    SGI STL中的RB-Tree实现机制有一定的技巧,定义了一个指向根节点的节点指针header,
+并且,header和根节点root互为对方的父节点,header的左子节点指向RB-Tree的最小节点,
+header的右子节点指向RB-Tree的最大节点
+*/
+
 #include <stl_algobase.h>
 #include <stl_alloc.h>
 #include <stl_construct.h>
 #include <stl_function.h>
 
 __STL_BEGIN_NAMESPACE 
+
+//#pragma set woff: Suppresses compiler warnings (either all, or by warning number)
+//#pragma reset woff: Resets listed warnings to the state specified in the command line
 
 #if defined(__sgi) && !defined(__GNUC__) && (_MIPS_SIM != _MIPS_SIM_ABI32)
 #pragma set woff 1375
@@ -119,6 +128,12 @@ struct _Rb_tree_base_iterator
         _M_node = __y;
         __y = __y->_M_parent;
       }
+      /*
+        若此时的右子节点不等于此时的父节点,此时的父节点即为解答,否则此时的node为解答.
+		因为SGI STL中的RB-Tree加入的header节点，所以需考虑特殊情况;
+        这样做是为了应付一种特殊情况：我们欲寻找根节点的下一个节点，而恰巧根节点无右孩子。 
+        当然，以上特殊做法必须配合RB-tree根节点与特殊header之间的特殊关系
+      */
       if (_M_node->_M_right != __y)
         _M_node = __y;
     }
@@ -126,22 +141,29 @@ struct _Rb_tree_base_iterator
 
   void _M_decrement()
   {
-    if (_M_node->_M_color == _S_rb_tree_red &&
-        _M_node->_M_parent->_M_parent == _M_node)
-      _M_node = _M_node->_M_right;
+    if (_M_node->_M_color == _S_rb_tree_red &&     //如果是红节点
+        _M_node->_M_parent->_M_parent == _M_node)  //父节点的父节点等于自己
+      _M_node = _M_node->_M_right;                 //右子节点即为解答
+      /*
+      以上情况发生于node为header时（亦即node为end()时）。注意，header之右孩子即 
+      rightmost node，指向整棵树的max节点。
+      */
+
+      // 如果存在左子树，左子树的最大值即为前驱节点
     else if (_M_node->_M_left != 0) {
       _Base_ptr __y = _M_node->_M_left;
       while (__y->_M_right != 0)
         __y = __y->_M_right;
       _M_node = __y;
     }
+    //没有左孩子
     else {
       _Base_ptr __y = _M_node->_M_parent;
-      while (_M_node == __y->_M_left) {
+      while (_M_node == __y->_M_left) { //上溯到父节点不为左孩子
         _M_node = __y;
         __y = __y->_M_parent;
       }
-      _M_node = __y;
+      _M_node = __y; // 父节点即为解答
     }
   }
 };
@@ -161,10 +183,10 @@ struct _Rb_tree_iterator : public _Rb_tree_base_iterator
   typedef _Rb_tree_node<_Value>* _Link_type;
 
   _Rb_tree_iterator() {}
-  _Rb_tree_iterator(_Link_type __x) { _M_node = __x; }
+  _Rb_tree_iterator(_Link_type __x) { _M_node = __x; } //将子类指针赋值给父类指针
   _Rb_tree_iterator(const iterator& __it) { _M_node = __it._M_node; }
 
-  reference operator*() const { return _Link_type(_M_node)->_M_value_field; }
+  reference operator*() const { return _Link_type(_M_node)->_M_value_field; } // 类型转换（父类转换为子类）
 #ifndef __SGI_STL_NO_ARROW_OPERATOR
   pointer operator->() const { return &(operator*()); }
 #endif /* __SGI_STL_NO_ARROW_OPERATOR */
@@ -213,6 +235,7 @@ inline _Value* value_type(const _Rb_tree_iterator<_Value, _Ref, _Ptr>&) {
 
 #endif /* __STL_CLASS_PARTIAL_SPECIALIZATION */
 
+//左旋操作（左右左：左旋操作，放到右孩子的左子树），x.right == y; 先调整y的左子树，然后是y节点， 最后是x节点。（记忆方法： 从下往上调整）
 inline void 
 _Rb_tree_rotate_left(_Rb_tree_node_base* __x, _Rb_tree_node_base*& __root)
 {
@@ -232,6 +255,7 @@ _Rb_tree_rotate_left(_Rb_tree_node_base* __x, _Rb_tree_node_base*& __root)
   __x->_M_parent = __y;
 }
 
+//右旋操作（右左右： 右旋操作，放到左孩子的右子树）,x.left == y; 先调整y的右子树，然后是y节点， 最后是x节点。（记忆方法： 从下往上调整）
 inline void 
 _Rb_tree_rotate_right(_Rb_tree_node_base* __x, _Rb_tree_node_base*& __root)
 {
@@ -251,13 +275,17 @@ _Rb_tree_rotate_right(_Rb_tree_node_base* __x, _Rb_tree_node_base*& __root)
   __x->_M_parent = __y;
 }
 
+//红黑树调整操作以保证红黑性质，参考<<算法导论>>
 inline void 
 _Rb_tree_rebalance(_Rb_tree_node_base* __x, _Rb_tree_node_base*& __root)
 {
   __x->_M_color = _S_rb_tree_red;
+  //循环条件： x不是root， x的父节点是红色
   while (__x != __root && __x->_M_parent->_M_color == _S_rb_tree_red) {
+    //父节点是祖父节点的左孩子
     if (__x->_M_parent == __x->_M_parent->_M_parent->_M_left) {
-      _Rb_tree_node_base* __y = __x->_M_parent->_M_parent->_M_right;
+      _Rb_tree_node_base* __y = __x->_M_parent->_M_parent->_M_right; // y是叔父节点
+      //情况1： y是红色
       if (__y && __y->_M_color == _S_rb_tree_red) {
         __x->_M_parent->_M_color = _S_rb_tree_black;
         __y->_M_color = _S_rb_tree_black;
@@ -265,16 +293,18 @@ _Rb_tree_rebalance(_Rb_tree_node_base* __x, _Rb_tree_node_base*& __root)
         __x = __x->_M_parent->_M_parent;
       }
       else {
+        //情况2： y是黑色，x是右孩子
         if (__x == __x->_M_parent->_M_right) {
           __x = __x->_M_parent;
           _Rb_tree_rotate_left(__x, __root);
         }
+        //情况3： y是黑色，x是左孩子
         __x->_M_parent->_M_color = _S_rb_tree_black;
         __x->_M_parent->_M_parent->_M_color = _S_rb_tree_red;
         _Rb_tree_rotate_right(__x->_M_parent->_M_parent, __root);
       }
     }
-    else {
+    else {//与上面对称
       _Rb_tree_node_base* __y = __x->_M_parent->_M_parent->_M_left;
       if (__y && __y->_M_color == _S_rb_tree_red) {
         __x->_M_parent->_M_color = _S_rb_tree_black;
@@ -296,6 +326,7 @@ _Rb_tree_rebalance(_Rb_tree_node_base* __x, _Rb_tree_node_base*& __root)
   __root->_M_color = _S_rb_tree_black;
 }
 
+//参考算法导论红黑树删除操作
 inline _Rb_tree_node_base*
 _Rb_tree_rebalance_for_erase(_Rb_tree_node_base* __z,
                              _Rb_tree_node_base*& __root,
@@ -304,7 +335,7 @@ _Rb_tree_rebalance_for_erase(_Rb_tree_node_base* __z,
 {
   _Rb_tree_node_base* __y = __z;
   _Rb_tree_node_base* __x = 0;
-  _Rb_tree_node_base* __x_parent = 0;
+  _Rb_tree_node_base* __x_parent = 0; //不用x.parent的原因是x 可能是null
   if (__y->_M_left == 0)     // __z has at most one non-null child. y == z.
     __x = __y->_M_right;     // __x might be null.
   else
@@ -319,7 +350,7 @@ _Rb_tree_rebalance_for_erase(_Rb_tree_node_base* __z,
   if (__y != __z) {          // relink y in place of z.  y is z's successor
     __z->_M_left->_M_parent = __y; 
     __y->_M_left = __z->_M_left;
-    if (__y != __z->_M_right) {
+    if (__y != __z->_M_right) {  //如果z的后继结点y不是z的右孩子
       __x_parent = __y->_M_parent;
       if (__x) __x->_M_parent = __y->_M_parent;
       __y->_M_parent->_M_left = __x;      // __y must be a child of _M_left
@@ -339,7 +370,7 @@ _Rb_tree_rebalance_for_erase(_Rb_tree_node_base* __z,
     __y = __z;
     // __y now points to node to be actually deleted
   }
-  else {                        // __y == __z
+  else {                        // __y == __z ;说明z没有两个孩子
     __x_parent = __y->_M_parent;
     if (__x) __x->_M_parent = __y->_M_parent;   
     if (__root == __z)
@@ -362,16 +393,34 @@ _Rb_tree_rebalance_for_erase(_Rb_tree_node_base* __z,
       else                      // __x == __z->_M_left
         __rightmost = _Rb_tree_node_base::_S_maximum(__x);
   }
-  if (__y->_M_color != _S_rb_tree_red) { 
-    while (__x != __root && (__x == 0 || __x->_M_color == _S_rb_tree_black))
+  /*
+  将x节点视为带有一重额外的黑色，下面的while循环的目标是将额外的黑色沿树上移，直到：（结合算法导论中的实例图看）
+  1. x指向红黑节点，此时将x着为（单个）黑色
+  2. x指向根节点， 此时可以简单的“移除”额外的黑色
+  3. 执行适当的旋转和重新着色，退出循环。
+  */
+  if (__y->_M_color != _S_rb_tree_red) { //RB-DELETE-FIXUP
+    //因为x有一重额外的黑色，所以循环过程中x是双重黑色的。
+    while (__x != __root && (__x == 0 || __x->_M_color == _S_rb_tree_black)) // x might be null
       if (__x == __x_parent->_M_left) {
         _Rb_tree_node_base* __w = __x_parent->_M_right;
+        /*
+        情况1：兄弟节点w是红色。
+        此时 w的子节点都是黑色，通过改变w和x.parent的颜色，然后对x.p做一次左旋，不违反红黑树的任何性质
+        现在，x的新兄弟节点是旋转之前w的某个字节点，颜色为黑色。这样，就将情况1转换为2、3、4处理。（根据w子节点颜色来区分）
+        */
         if (__w->_M_color == _S_rb_tree_red) {
           __w->_M_color = _S_rb_tree_black;
           __x_parent->_M_color = _S_rb_tree_red;
           _Rb_tree_rotate_left(__x_parent, __root);
           __w = __x_parent->_M_right;
         }
+        /*
+        情况2：兄弟节点w是黑色，而且w的两个字节点都是黑色，或者为null（null默认是黑色）
+        因为w是黑色的，所以从x和w上去掉一重黑色，使得x只有一重黑色而w为红色。为了补偿从x和w中去掉的一重黑色，在原来是红色或黑色的x.p上
+        新增一重额外的黑色。通过将x.p设置为新节点x来重复while循环。
+        如果通过情况1进入到情况2，则新节点x是红黑色的，因为原来的x.p是红色的，所以在测试循环条件后终止循环。最后将x着为（单一）黑色
+        */
         if ((__w->_M_left == 0 || 
              __w->_M_left->_M_color == _S_rb_tree_black) &&
             (__w->_M_right == 0 || 
@@ -379,7 +428,12 @@ _Rb_tree_rebalance_for_erase(_Rb_tree_node_base* __z,
           __w->_M_color = _S_rb_tree_red;
           __x = __x_parent;
           __x_parent = __x_parent->_M_parent;
-        } else {
+        } else { 
+        /*
+        情况3： 兄弟节点w是黑色， w的左孩子是红色，右孩子是黑色
+        交换w和其左孩子w.left的颜色，然后对w进行右旋而不违反红黑树的任何性质。现在x的新兄弟节点w是一个有红色右孩子的黑色节点，
+        这样，情况3转换成了情况4
+        */
           if (__w->_M_right == 0 || 
               __w->_M_right->_M_color == _S_rb_tree_black) {
             if (__w->_M_left) __w->_M_left->_M_color = _S_rb_tree_black;
@@ -387,11 +441,15 @@ _Rb_tree_rebalance_for_erase(_Rb_tree_node_base* __z,
             _Rb_tree_rotate_right(__w, __root);
             __w = __x_parent->_M_right;
           }
+          /*
+          情况4：兄弟节点w是黑色，且w的右孩子是红色
+          通过进行某些颜色修改并对x.p做一次左旋，可以去掉x的额外黑色，从而使它变为单重黑色，而且不破坏红黑树的任何性质。
+          */
           __w->_M_color = __x_parent->_M_color;
           __x_parent->_M_color = _S_rb_tree_black;
           if (__w->_M_right) __w->_M_right->_M_color = _S_rb_tree_black;
           _Rb_tree_rotate_left(__x_parent, __root);
-          break;
+          break; //循环终止
         }
       } else {                  // same as above, with _M_right <-> _M_left.
         _Rb_tree_node_base* __w = __x_parent->_M_left;

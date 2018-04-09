@@ -171,6 +171,8 @@ struct _Base_bitset {
 // Definitions of non-inline functions from _Base_bitset.
 // 
 
+//2018-04-02 by wfq
+//left shift is move right
 template<size_t _Nw>
 void _Base_bitset<_Nw>::_M_do_left_shift(size_t __shift) 
 {
@@ -194,6 +196,8 @@ void _Base_bitset<_Nw>::_M_do_left_shift(size_t __shift)
   }
 }
 
+//2018-04-02 by wfq
+//right shift is move left
 template<size_t _Nw>
 void _Base_bitset<_Nw>::_M_do_right_shift(size_t __shift) 
 {
@@ -228,6 +232,8 @@ unsigned long _Base_bitset<_Nw>::_M_do_to_ulong() const
   return _M_w[0];
 }
 
+//2018-04-02 by wfq
+//find the first '1' position
 template<size_t _Nw>
 size_t _Base_bitset<_Nw>::_M_do_find_first(size_t __not_found) const 
 {
@@ -430,6 +436,8 @@ size_t _Base_bitset<1>::_M_do_find_next(size_t __prev, size_t __not_found ) cons
 // ------------------------------------------------------------
 // Helper class to zero out the unused high-order bits in the highest word.
 
+//2018-04-03 by wfq
+//_Extrabits is the used bit count in highest word.
 template <size_t _Extrabits> struct _Sanitize {
   static void _M_do_sanitize(unsigned long& __val)
     { __val &= ~((~static_cast<unsigned long>(0)) << _Extrabits); }
@@ -943,6 +951,8 @@ ostream& operator<<(ostream& __os, const bitset<_Nb>& __x) {
 // ------------------------------------------------------------
 // Lookup tables for find and count operations.
 
+//2018-04-02 by wfq
+//0~255 integer has '1' bit count in an byte
 template<bool __dummy>
 unsigned char _Bit_count<__dummy>::_S_bit_count[] = {
   0, /*   0 */ 1, /*   1 */ 1, /*   2 */ 2, /*   3 */ 1, /*   4 */
@@ -999,6 +1009,9 @@ unsigned char _Bit_count<__dummy>::_S_bit_count[] = {
   8  /* 255 */
 }; // end _Bit_count
 
+
+//2018-04-02 by wfq
+//0~255 first '1' bit position in an byte
 template<bool __dummy>
 unsigned char _First_one<__dummy>::_S_first_one[] = {
   0, /*   0 */ 0, /*   1 */ 1, /*   2 */ 0, /*   3 */ 2, /*   4 */

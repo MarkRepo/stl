@@ -814,6 +814,8 @@ _OutputIter reverse_copy(_BidirectionalIter __first,
 
 // rotate and rotate_copy, and their auxiliary functions
 
+//2018-04-08 by wfq
+//求m，n的最大公约数
 template <class _EuclideanRingElement>
 _EuclideanRingElement __gcd(_EuclideanRingElement __m,
                             _EuclideanRingElement __n)
@@ -826,6 +828,9 @@ _EuclideanRingElement __gcd(_EuclideanRingElement __m,
   return __m;
 }
 
+//2018-04-08 by wfq
+//rotate 交换范围[first, last)中的元素， 方式满足middle成为新范围的首元素，而middle-1 成为最后元素;
+//例如 [0,1,2,3,4,5,6,7,8], middle = 2, rotate 之后变成[2,3,4,5,6,7,8,0,1]
 template <class _ForwardIter, class _Distance>
 _ForwardIter __rotate(_ForwardIter __first,
                       _ForwardIter __middle,
@@ -859,7 +864,8 @@ _ForwardIter __rotate(_ForwardIter __first,
   return __new_middle;
 }
 
-
+//2018-04-08 by wfq
+//当rotate用于双向迭代器时，使用reverse实现
 template <class _BidirectionalIter, class _Distance>
 _BidirectionalIter __rotate(_BidirectionalIter __first,
                             _BidirectionalIter __middle,
@@ -888,6 +894,9 @@ _BidirectionalIter __rotate(_BidirectionalIter __first,
   }
 }
 
+//2018-04-08 by wfq
+//当rotate用于随机迭代器时，使用最大公约数实现。具体思路可通过分析以下例子：
+//[0,1,2,3,4,5,6,7,8], middle=3 和 middle=6 的情况.
 template <class _RandomAccessIter, class _Distance, class _Tp>
 _RandomAccessIter __rotate(_RandomAccessIter __first,
                            _RandomAccessIter __middle,
@@ -1152,6 +1161,9 @@ _BidirectionalIter __partition(_BidirectionalIter __first,
         ++__first;
       else
         break;
+      
+    //2018-04-08 by wfq
+    //第二个while：从后往前找到一个符合pred的元素与first交换位置。
     --__last;
     while (true)
       if (__first == __last)
@@ -1175,7 +1187,9 @@ inline _ForwardIter partition(_ForwardIter __first,
   return __partition(__first, __last, __pred, __ITERATOR_CATEGORY(__first));
 }
 
-
+//2018-04-08 by wfq
+//rotate使符合pred的元素放到前面，例如：
+//[0,1,1,0,0,1,1,0] --> [1,0,1,0,1,0,1,0] --> [1,1,0,0,1,1,0,0] --> [1,1,1,1,0,0,0,0]
 template <class _ForwardIter, class _Predicate, class _Distance>
 _ForwardIter __inplace_stable_partition(_ForwardIter __first,
                                         _ForwardIter __last,
@@ -1390,6 +1404,8 @@ inline void __unguarded_insertion_sort(_RandomAccessIter __first,
                                  __comp);
 }
 
+//2018-04-09 by wfq
+// 不检查边界的插入排序（效率更高）， 需保证最小值已在左侧（参考__introsort_loop 的两种循环退出情况,可以证明最小值在左侧区间）
 template <class _RandomAccessIter>
 void __final_insertion_sort(_RandomAccessIter __first, 
                             _RandomAccessIter __last) {
@@ -1419,14 +1435,19 @@ inline _Size __lg(_Size __n) {
   return __k;
 }
 
+//2018-04-09 by wfq
+// sort 的辅助函数
+//内省排序（参考wiki：introsort）：这个排序算法首先从快速排序开始，当递归深度超过一定深度（深度为排序元素数量的对数值，参考sort）后转为堆排序。
+//快速排序的一个关键操作时选择基准点，采用三点中值法避免最坏情况
+//参考：http://feihu.me/blog/2014/sgi-std-sort/ 源码分析
 template <class _RandomAccessIter, class _Tp, class _Size>
 void __introsort_loop(_RandomAccessIter __first,
                       _RandomAccessIter __last, _Tp*,
                       _Size __depth_limit)
 {
-  while (__last - __first > __stl_threshold) {
-    if (__depth_limit == 0) {
-      partial_sort(__first, __last, __last);
+  while (__last - __first > __stl_threshold) { // __stl_threshold 最小分段阀值
+    if (__depth_limit == 0) {                //__depth_limit 递归深度阀值
+      partial_sort(__first, __last, __last); // 调用堆排序
       return;
     }
     --__depth_limit;
@@ -1434,9 +1455,9 @@ void __introsort_loop(_RandomAccessIter __first,
       __unguarded_partition(__first, __last,
                             _Tp(__median(*__first,
                                          *(__first + (__last - __first)/2),
-                                         *(__last - 1))));
-    __introsort_loop(__cut, __last, (_Tp*) 0, __depth_limit);
-    __last = __cut;
+                                         *(__last - 1))));       // __unguarded_partition 分割算法将序列分为两部分，是快速排序算法的主体部分
+    __introsort_loop(__cut, __last, (_Tp*) 0, __depth_limit);   //递归排序右侧子序列
+    __last = __cut;                                             //循环迭代处理左侧子序列
   }
 }
 
@@ -1497,7 +1518,7 @@ template <class _RandomAccessIter>
 void __inplace_stable_sort(_RandomAccessIter __first,
                            _RandomAccessIter __last) {
   if (__last - __first < 15) {
-    __insertion_sort(__first, __last);
+    __insertion_sort(__first, __last);  //__insertion_sort 是稳定排序，保持相等元素的相对位置
     return;
   }
   _RandomAccessIter __middle = __first + (__last - __first) / 2;
@@ -1524,6 +1545,8 @@ void __inplace_stable_sort(_RandomAccessIter __first,
                          __comp);
 }
 
+//2018-04-09 by wfq
+//先按步长 __two_step 合并到__result, 再将剩余的元素合并到__result
 template <class _RandomAccessIter1, class _RandomAccessIter2,
           class _Distance>
 void __merge_sort_loop(_RandomAccessIter1 __first,
@@ -1567,7 +1590,9 @@ void __merge_sort_loop(_RandomAccessIter1 __first,
 }
 
 const int __stl_chunk_size = 7;
-        
+
+//2018-04-09 by wfq
+// 分块插入排序
 template <class _RandomAccessIter, class _Distance>
 void __chunk_insertion_sort(_RandomAccessIter __first, 
                             _RandomAccessIter __last, _Distance __chunk_size)
@@ -1591,6 +1616,8 @@ void __chunk_insertion_sort(_RandomAccessIter __first,
   __insertion_sort(__first, __last, __comp);
 }
 
+//2018-04-09 by wfq
+//先分块插入排序[first,last), 然后循环两两合并到buffer， 两两合并到first，最终[first,last) 有序。
 template <class _RandomAccessIter, class _Pointer, class _Distance>
 void __merge_sort_with_buffer(_RandomAccessIter __first, 
                               _RandomAccessIter __last,
@@ -2217,7 +2244,10 @@ _OutputIter merge(_InputIter1 __first1, _InputIter1 __last1,
 }
 
 // inplace_merge and its auxiliary functions. 
-
+//2018-04-09 by wfq
+//画个图就好理解了：
+//<-----------len11------------->  <---------(len1-len11)----->  <-----------len22---------->  <------------len2-len22------->
+//first ----(< *first_cut)-----first_cut---(> *first_cut)----middle----(< *first_cut)----second_cut------(> *first_cut)-----last
 template <class _BidirectionalIter, class _Distance>
 void __merge_without_buffer(_BidirectionalIter __first,
                             _BidirectionalIter __middle,
@@ -2528,6 +2558,8 @@ inline void inplace_merge(_BidirectionalIter __first,
 // that their input ranges are sorted and the postcondition that their output
 // ranges are sorted.
 
+//2018-04-09 by wfq
+//查询有序序列[first1,last1) 是否包含有序序列[first2,last2)
 template <class _InputIter1, class _InputIter2>
 bool includes(_InputIter1 __first1, _InputIter1 __last1,
               _InputIter2 __first2, _InputIter2 __last2) {
@@ -2549,6 +2581,7 @@ bool includes(_InputIter1 __first1, _InputIter1 __last1,
   return __first2 == __last2;
 }
 
+// 使用__comp 版本
 template <class _InputIter1, class _InputIter2, class _Compare>
 bool includes(_InputIter1 __first1, _InputIter1 __last1,
               _InputIter2 __first2, _InputIter2 __last2, _Compare __comp) {
@@ -2571,6 +2604,7 @@ bool includes(_InputIter1 __first1, _InputIter1 __last1,
   return __first2 == __last2;
 }
 
+//求两个有序序列的并集
 template <class _InputIter1, class _InputIter2, class _OutputIter>
 _OutputIter set_union(_InputIter1 __first1, _InputIter1 __last1,
                       _InputIter2 __first2, _InputIter2 __last2,
@@ -2635,6 +2669,7 @@ _OutputIter set_union(_InputIter1 __first1, _InputIter1 __last1,
   return copy(__first2, __last2, copy(__first1, __last1, __result));
 }
 
+//求两个有序序列的交集
 template <class _InputIter1, class _InputIter2, class _OutputIter>
 _OutputIter set_intersection(_InputIter1 __first1, _InputIter1 __last1,
                              _InputIter2 __first2, _InputIter2 __last2,
@@ -2690,6 +2725,7 @@ _OutputIter set_intersection(_InputIter1 __first1, _InputIter1 __last1,
   return __result;
 }
 
+//求有序序列[first1,last1)的补集（序列1有，序列2没有的 元素集合）
 template <class _InputIter1, class _InputIter2, class _OutputIter>
 _OutputIter set_difference(_InputIter1 __first1, _InputIter1 __last1,
                            _InputIter2 __first2, _InputIter2 __last2,
@@ -2747,6 +2783,7 @@ _OutputIter set_difference(_InputIter1 __first1, _InputIter1 __last1,
   return copy(__first1, __last1, __result);
 }
 
+//求有序序列[first1,last1),[first2,last2)的补集的并集。
 template <class _InputIter1, class _InputIter2, class _OutputIter>
 _OutputIter 
 set_symmetric_difference(_InputIter1 __first1, _InputIter1 __last1,
@@ -2815,6 +2852,7 @@ set_symmetric_difference(_InputIter1 __first1, _InputIter1 __last1,
 // min_element and max_element, with and without an explicitly supplied
 // comparison function.
 
+//返回最大值
 template <class _ForwardIter>
 _ForwardIter max_element(_ForwardIter __first, _ForwardIter __last) {
   __STL_REQUIRES(_ForwardIter, _ForwardIterator);
@@ -2842,6 +2880,7 @@ _ForwardIter max_element(_ForwardIter __first, _ForwardIter __last,
   return __result;
 }
 
+//返回最小值
 template <class _ForwardIter>
 _ForwardIter min_element(_ForwardIter __first, _ForwardIter __last) {
   __STL_REQUIRES(_ForwardIter, _ForwardIterator);
@@ -2873,6 +2912,7 @@ _ForwardIter min_element(_ForwardIter __first, _ForwardIter __last,
 // next_permutation and prev_permutation, with and without an explicitly 
 // supplied comparison function.
 
+//获取序列的下一个排列，如果有，调整序列，返回true， 否则返回false。
 template <class _BidirectionalIter>
 bool next_permutation(_BidirectionalIter __first, _BidirectionalIter __last) {
   __STL_REQUIRES(_BidirectionalIter, _BidirectionalIterator);
@@ -2890,7 +2930,7 @@ bool next_permutation(_BidirectionalIter __first, _BidirectionalIter __last) {
   for(;;) {
     _BidirectionalIter __ii = __i;
     --__i;
-    if (*__i < *__ii) {
+    if (*__i < *__ii) {//i, ii相邻，若前一个小于后一个，则从最尾端开始往前找出第一个大于*i的元素*j, 交换*i和*j， 再将ii之后的所有元素颠倒排序。
       _BidirectionalIter __j = __last;
       while (!(*__i < *--__j))
         {}
@@ -2939,6 +2979,7 @@ bool next_permutation(_BidirectionalIter __first, _BidirectionalIter __last,
   }
 }
 
+//获取序列的前一个排列，如果有，调整序列，返回true， 否则返回false。
 template <class _BidirectionalIter>
 bool prev_permutation(_BidirectionalIter __first, _BidirectionalIter __last) {
   __STL_REQUIRES(_BidirectionalIter, _BidirectionalIterator);
@@ -2956,7 +2997,7 @@ bool prev_permutation(_BidirectionalIter __first, _BidirectionalIter __last) {
   for(;;) {
     _BidirectionalIter __ii = __i;
     --__i;
-    if (*__ii < *__i) {
+    if (*__ii < *__i) {//i,ii相邻，若后一个小于前一个，则从最尾端开始往前找出第一个小于*i的元素*j，交换*i和*j，将ii之后的所有元素颠倒排序
       _BidirectionalIter __j = __last;
       while (!(*--__j < *__i))
         {}
@@ -3007,6 +3048,7 @@ bool prev_permutation(_BidirectionalIter __first, _BidirectionalIter __last,
 
 // find_first_of, with and without an explicitly supplied comparison function.
 
+//在第一个序列中查找第二个序列中元素的首次出现位置
 template <class _InputIter, class _ForwardIter>
 _InputIter find_first_of(_InputIter __first1, _InputIter __last1,
                          _ForwardIter __first2, _ForwardIter __last2)
@@ -3049,6 +3091,7 @@ _InputIter find_first_of(_InputIter __first1, _InputIter __last1,
 // is much faster than for forward iterators.
 
 // find_end for forward iterators. 
+//在序列[first1,last1)中查找序列[first2,last2)的最后一个匹配，调用search查找当前匹配，记住结果，然后继续向前尝试匹配。
 template <class _ForwardIter1, class _ForwardIter2>
 _ForwardIter1 __find_end(_ForwardIter1 __first1, _ForwardIter1 __last1,
                          _ForwardIter2 __first2, _ForwardIter2 __last2,
@@ -3100,6 +3143,10 @@ _ForwardIter1 __find_end(_ForwardIter1 __first1, _ForwardIter1 __last1,
 // find_end for bidirectional iterators.  Requires partial specialization.
 #ifdef __STL_CLASS_PARTIAL_SPECIALIZATION
 
+//find_end的双向迭代器版本效率更高，利用反向迭代器只需要一次匹配（反向迭代器保存的迭代器指向后一个元素位置）
+//或者说：反向迭代器与底层迭代器之间的根本关系是&*(r(p)) = &*(p-1);
+//                     beg,    beg+1, ...    end-1, end(尾后位置)
+//（尾后位置）r(beg), r(beg+1),... r(end-1), r(end)
 template <class _BidirectionalIter1, class _BidirectionalIter2>
 _BidirectionalIter1
 __find_end(_BidirectionalIter1 __first1, _BidirectionalIter1 __last1,
@@ -3194,6 +3241,7 @@ find_end(_ForwardIter1 __first1, _ForwardIter1 __last1,
 // a heap.  This function is an extension, not part of the C++
 // standard.
 
+//判断一个序列是否构成堆
 template <class _RandomAccessIter, class _Distance>
 bool __is_heap(_RandomAccessIter __first, _Distance __n)
 {
@@ -3201,7 +3249,7 @@ bool __is_heap(_RandomAccessIter __first, _Distance __n)
   for (_Distance __child = 1; __child < __n; ++__child) {
     if (__first[__parent] < __first[__child]) 
       return false;
-    if ((__child & 1) == 0)
+    if ((__child & 1) == 0)   //如果是偶数，则是右孩子
       ++__parent;
   }
   return true;
@@ -3246,6 +3294,7 @@ inline bool is_heap(_RandomAccessIter __first, _RandomAccessIter __last,
 // nondescending order.  This is an extension, not part of the C++
 // standard.
 
+//判断一个序列是否有序
 template <class _ForwardIter>
 bool is_sorted(_ForwardIter __first, _ForwardIter __last)
 {

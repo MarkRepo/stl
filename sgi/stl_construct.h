@@ -28,6 +28,9 @@
  *   You should not attempt to use it directly.
  */
 
+
+//2018-04-10 by wfq
+//负责对象内容的构造与析构， 全局作用域函数
 #ifndef __SGI_STL_INTERNAL_CONSTRUCT_H
 #define __SGI_STL_INTERNAL_CONSTRUCT_H
 

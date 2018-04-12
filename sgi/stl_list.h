@@ -799,7 +799,7 @@ void list<_Tp, _Alloc>::sort()
         __carry.swap(__counter[__i++]);//排好序的数据放到carry中
       }
       __carry.swap(__counter[__i]); //数据交换，此时carry为空，数据到counter[i]中了      
-      if (__i == __fill) ++__fill;//counter 下标加1
+      if (__i == __fill) ++__fill;//counter链表有数据的下标加1
     } 
 
     //最后一轮归并

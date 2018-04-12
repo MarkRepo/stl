@@ -46,6 +46,7 @@ struct binary_function {
   typedef _Result result_type;
 };      
 
+//定义一些算术运算，关系运算，逻辑运算等函数对象类型
 template <class _Tp>
 struct plus : public binary_function<_Tp,_Tp,_Tp> {
   _Tp operator()(const _Tp& __x, const _Tp& __y) const { return __x + __y; }
@@ -141,6 +142,7 @@ struct logical_not : public unary_function<_Tp,bool>
   bool operator()(const _Tp& __x) const { return !__x; }
 };
 
+//一元操作取反
 template <class _Predicate>
 class unary_negate
   : public unary_function<typename _Predicate::argument_type, bool> {
@@ -153,6 +155,7 @@ public:
   }
 };
 
+//返回 一元操作取反 函数对象
 template <class _Predicate>
 inline unary_negate<_Predicate> 
 not1(const _Predicate& __pred)
@@ -160,6 +163,7 @@ not1(const _Predicate& __pred)
   return unary_negate<_Predicate>(__pred);
 }
 
+//二元操作取反
 template <class _Predicate> 
 class binary_negate 
   : public binary_function<typename _Predicate::first_argument_type,
@@ -176,6 +180,7 @@ public:
   }
 };
 
+// 返回二元操作取反 函数对象
 template <class _Predicate>
 inline binary_negate<_Predicate> 
 not2(const _Predicate& __pred)
@@ -183,6 +188,7 @@ not2(const _Predicate& __pred)
   return binary_negate<_Predicate>(__pred);
 }
 
+//绑定二元操作的第一个参数 的函数对象
 template <class _Operation> 
 class binder1st
   : public unary_function<typename _Operation::second_argument_type,
@@ -200,6 +206,7 @@ public:
   }
 };
 
+//返回一个二元操作绑定第一个参数的函数对象
 template <class _Operation, class _Tp>
 inline binder1st<_Operation> 
 bind1st(const _Operation& __fn, const _Tp& __x) 
@@ -208,6 +215,7 @@ bind1st(const _Operation& __fn, const _Tp& __x)
   return binder1st<_Operation>(__fn, _Arg1_type(__x));
 }
 
+//绑定二元操作的第二个参数 的函数对象
 template <class _Operation> 
 class binder2nd
   : public unary_function<typename _Operation::first_argument_type,
@@ -225,6 +233,7 @@ public:
   }
 };
 
+//返回一个二元操作绑定第二个参数的函数对象
 template <class _Operation, class _Tp>
 inline binder2nd<_Operation> 
 bind2nd(const _Operation& __fn, const _Tp& __x) 
@@ -234,7 +243,7 @@ bind2nd(const _Operation& __fn, const _Tp& __x)
 }
 
 // unary_compose and binary_compose (extensions, not part of the standard).
-
+//一元组合操作 f1(f2(x))
 template <class _Operation1, class _Operation2>
 class unary_compose
   : public unary_function<typename _Operation2::argument_type,
@@ -259,6 +268,7 @@ compose1(const _Operation1& __fn1, const _Operation2& __fn2)
   return unary_compose<_Operation1,_Operation2>(__fn1, __fn2);
 }
 
+//二元组合操作 f1(f2(x), f3(x))
 template <class _Operation1, class _Operation2, class _Operation3>
 class binary_compose
   : public unary_function<typename _Operation2::argument_type,
@@ -286,6 +296,7 @@ compose2(const _Operation1& __fn1, const _Operation2& __fn2,
     (__fn1, __fn2, __fn3);
 }
 
+//一元函数指针 函数对象类型
 template <class _Arg, class _Result>
 class pointer_to_unary_function : public unary_function<_Arg, _Result> {
 protected:
@@ -331,6 +342,7 @@ struct _Identity : public unary_function<_Tp,_Tp> {
 template <class _Tp> struct identity : public _Identity<_Tp> {};
 
 // select1st and select2nd are extensions: they are not part of the standard.
+//获取pair的第一个值
 template <class _Pair>
 struct _Select1st : public unary_function<_Pair, typename _Pair::first_type> {
   const typename _Pair::first_type& operator()(const _Pair& __x) const {
@@ -370,6 +382,7 @@ struct project2nd : public _Project2nd<_Arg1, _Arg2> {};
 // extensions: they are not part of the standard.  (The same, of course,
 // is true of the helper functions constant0, constant1, and constant2.)
 
+//常函数，返回一个值
 template <class _Result>
 struct _Constant_void_fun {
   typedef _Result result_type;
@@ -485,6 +498,7 @@ public:
 };
 
 
+//函数对象适配器：指向成员函数
 // Adaptor function objects: pointers to member functions.
 
 // There are a total of 16 = 2^4 function objects in this family.
@@ -508,6 +522,7 @@ public:
 //  but they are provided for backward compatibility.)
 
 
+//保存类型 _Tp的一个成员函数指针， 须由_Tp类型对象指针调用
 template <class _Ret, class _Tp>
 class mem_fun_t : public unary_function<_Tp*,_Ret> {
 public:
@@ -517,6 +532,7 @@ private:
   _Ret (_Tp::*_M_f)();
 };
 
+//const成员函数， 由const 对象指针调用
 template <class _Ret, class _Tp>
 class const_mem_fun_t : public unary_function<const _Tp*,_Ret> {
 public:
@@ -526,7 +542,7 @@ private:
   _Ret (_Tp::*_M_f)() const;
 };
 
-
+//对象的引用
 template <class _Ret, class _Tp>
 class mem_fun_ref_t : public unary_function<_Tp,_Ret> {
 public:

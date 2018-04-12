@@ -656,6 +656,7 @@ __default_alloc_template<__threads, __inst> ::_S_free_list[
 
 #ifdef __STL_USE_STD_ALLOCATORS
 
+//默认使用 alloc 作为配置器
 template <class _Tp>
 class allocator {
   typedef alloc _Alloc;          // The underlying allocator.
@@ -884,6 +885,7 @@ static void deallocate(_Tp*, size_t)
 
 // The fully general version.
 
+//以下所有的_Alloc_traits模板 根据类型参数 _Allocator的实际配置器来定义allocator_type 和_Alloc_type
 template <class _Tp, class _Allocator>
 struct _Alloc_traits
 {

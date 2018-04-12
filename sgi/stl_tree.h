@@ -110,7 +110,7 @@ struct _Rb_tree_node : public _Rb_tree_node_base
 
 struct _Rb_tree_base_iterator
 {
-  typedef _Rb_tree_node_base::_Base_ptr _Base_ptr;
+  typedef _Rb_tree_node_base::_Base_ptr c;
   typedef bidirectional_iterator_tag iterator_category;
   typedef ptrdiff_t difference_type;
   _Base_ptr _M_node;
@@ -743,7 +743,7 @@ public:
   _Compare key_comp() const { return _M_key_compare; }
   iterator begin() { return _M_leftmost(); }
   const_iterator begin() const { return _M_leftmost(); }
-  iterator end() { return _M_header; }
+  iterator end() { return _M_header; } // end()返回 _M_header
   const_iterator end() const { return _M_header; }
   reverse_iterator rbegin() { return reverse_iterator(end()); }
   const_reverse_iterator rbegin() const { 
@@ -917,6 +917,7 @@ _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>
   _Link_type __y = (_Link_type) __y_;
   _Link_type __z;
 
+ //如果 y是 header节点，或者x不为null， 或者 v < y, 则插y左边; 否则插y右边
   if (__y == _M_header || __x != 0 || 
       _M_key_compare(_KeyOfValue()(__v), _S_key(__y))) {
     __z = _M_create_node(__v);
@@ -943,6 +944,7 @@ _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>
   return iterator(__z);
 }
 
+//允许相等的插入
 template <class _Key, class _Value, class _KeyOfValue, 
           class _Compare, class _Alloc>
 typename _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>::iterator
@@ -976,14 +978,17 @@ _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>
     __x = __comp ? _S_left(__x) : _S_right(__x);
   }
   iterator __j = iterator(__y);   
-  if (__comp)
-    if (__j == begin())     
+  if (__comp) // 如果上面的while 循环最后一次判断 v < x,则 _S_left(__x)是0，y有可能是最小节点（在循环中y就是x） 
+    if (__j == begin())
+        //如果y是最左节点，直接插入
       return pair<iterator,bool>(_M_insert(__x, __y, __v), true);
     else
-      --__j;
+      --__j;// j的前驱节点
   if (_M_key_compare(_S_key(__j._M_node), _KeyOfValue()(__v)))
+    //（1）如果前驱节点 --j<v, v<j 则插入v;
+    //（2）如果 v>=j（comp == false 得出） && j < v， 说明v严格大于y， 则插入
     return pair<iterator,bool>(_M_insert(__x, __y, __v), true);
-  return pair<iterator,bool>(__j, false);
+  return pair<iterator,bool>(__j, false); //如果相等， 不插入，返回false
 }
 
 
@@ -996,7 +1001,7 @@ _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>
   if (__position._M_node == _M_header->_M_left) { // begin()
     if (size() > 0 && 
         _M_key_compare(_KeyOfValue()(__v), _S_key(__position._M_node)))
-      return _M_insert(__position._M_node, __position._M_node, __v);
+      return _M_insert(__position._M_node, __position._M_node, __v); // ？？？
     // first argument just needs to be non-null 
     else
       return insert_unique(__v).first;
@@ -1009,10 +1014,10 @@ _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>
     iterator __before = __position;
     --__before;
     if (_M_key_compare(_S_key(__before._M_node), _KeyOfValue()(__v)) 
-        && _M_key_compare(_KeyOfValue()(__v), _S_key(__position._M_node))) {
-      if (_S_right(__before._M_node) == 0)
+        && _M_key_compare(_KeyOfValue()(__v), _S_key(__position._M_node))) { // before < v < position
+      if (_S_right(__before._M_node) == 0)// 如果前驱右子树为null， 插入到前驱右边
         return _M_insert(0, __before._M_node, __v); 
-      else
+      else //否则插入到当前position左边
         return _M_insert(__position._M_node, __position._M_node, __v);
     // first argument just needs to be non-null 
     } else
@@ -1110,7 +1115,8 @@ void _Rb_tree<_Key,_Val,_KoV,_Cmp,_Alloc>
 }
 
 #endif /* __STL_MEMBER_TEMPLATES */
-         
+
+//删除某个节点，调整红黑树性质         
 template <class _Key, class _Value, class _KeyOfValue, 
           class _Compare, class _Alloc>
 inline void _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>
@@ -1125,6 +1131,7 @@ inline void _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>
   --_M_node_count;
 }
 
+//删除key为x的所有节点
 template <class _Key, class _Value, class _KeyOfValue, 
           class _Compare, class _Alloc>
 typename _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>::size_type 
@@ -1137,6 +1144,7 @@ _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>::erase(const _Key& __x)
   return __n;
 }
 
+//拷贝整颗子树
 template <class _Key, class _Val, class _KoV, class _Compare, class _Alloc>
 typename _Rb_tree<_Key, _Val, _KoV, _Compare, _Alloc>::_Link_type 
 _Rb_tree<_Key,_Val,_KoV,_Compare,_Alloc>
@@ -1167,6 +1175,7 @@ _Rb_tree<_Key,_Val,_KoV,_Compare,_Alloc>
   return __top;
 }
 
+//删除整颗子树
 template <class _Key, class _Value, class _KeyOfValue, 
           class _Compare, class _Alloc>
 void _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>
@@ -1181,6 +1190,7 @@ void _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>
   }
 }
 
+//删除某个区间节点
 template <class _Key, class _Value, class _KeyOfValue, 
           class _Compare, class _Alloc>
 void _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>
@@ -1192,6 +1202,7 @@ void _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>
     while (__first != __last) erase(__first++);
 }
 
+//删除某个区间的key
 template <class _Key, class _Value, class _KeyOfValue, 
           class _Compare, class _Alloc>
 void _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>
@@ -1233,7 +1244,8 @@ _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>::find(const _Key& __k) const
     else
       __x = _S_right(__x);
   }
-  const_iterator __j = const_iterator(__y);   
+  const_iterator __j = const_iterator(__y); 
+  //y节点满足 k <= y, 所以如果 k<y, 表示没有找到
   return (__j == end() || _M_key_compare(__k, _S_key(__j._M_node))) ?
     end() : __j;
 }
@@ -1344,6 +1356,7 @@ _Rb_tree<_Key, _Value, _KoV, _Compare, _Alloc>
                                              upper_bound(__k));
 }
 
+//返回从node到根节点的黑色节点数
 inline int 
 __black_count(_Rb_tree_node_base* __node, _Rb_tree_node_base* __root)
 {
@@ -1358,6 +1371,7 @@ __black_count(_Rb_tree_node_base* __node, _Rb_tree_node_base* __root)
   }
 }
 
+//检查一棵树是否为红黑树
 template <class _Key, class _Value, class _KeyOfValue, 
           class _Compare, class _Alloc>
 bool _Rb_tree<_Key,_Value,_KeyOfValue,_Compare,_Alloc>::__rb_verify() const

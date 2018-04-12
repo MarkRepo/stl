@@ -199,6 +199,7 @@ public:
           _Base; 
   typedef typename _Base::allocator_type allocator_type;
 
+ //初始化就有一个节点
   _List_base(const allocator_type& __a) : _Base(__a) {
     _M_node = _M_get_node();
     _M_node->_M_next = _M_node;
@@ -332,6 +333,7 @@ public:
   iterator begin()             { return (_Node*)(_M_node->_M_next); }
   const_iterator begin() const { return (_Node*)(_M_node->_M_next); }
 
+  //第一个节点作为哨兵
   iterator end()             { return _M_node; }
   const_iterator end() const { return _M_node; }
 
@@ -490,6 +492,8 @@ public:
 #endif /* __STL_MEMBER_TEMPLATES */
 
 protected:
+ //转移操作
+ //将[first, last)转移到position位置之前
   void transfer(iterator __position, iterator __first, iterator __last) {
     if (__position != __last) {
       // Remove [first, last) from its old position.
@@ -506,6 +510,7 @@ protected:
   }
 
 public:
+  //从x转移所有元素到 *this，元素被插入到pos所指向的元素之前，操作后x变为空。若x与*this指向同一对象，则行为未定义
   void splice(iterator __position, list& __x) {
     if (!__x.empty()) 
       this->transfer(__position, __x.begin(), __x.end());
@@ -514,11 +519,11 @@ public:
     iterator __j = __i;
     ++__j;
     if (__position == __i || __position == __j) return;
-    this->transfer(__position, __i, __j);
+    this->transfer(__position, __i, __j);//转移i所指元素到pos之前
   }
   void splice(iterator __position, list&, iterator __first, iterator __last) {
     if (__first != __last) 
-      this->transfer(__position, __first, __last);
+      this->transfer(__position, __first, __last);//若pos是范围[first,last)中的迭代器，行为未定义
   }
   void remove(const _Tp& __value);
   void unique();
@@ -769,6 +774,9 @@ inline void list<_Tp, _Alloc>::reverse()
   __List_base_reverse(this->_M_node);
 }    
 
+/*
+list 不能使用STL中的sort算法，因为stl中的sort只接受 random access iterator，也就是连续空间
+*/
 template <class _Tp, class _Alloc>
 void list<_Tp, _Alloc>::sort()
 {
@@ -777,20 +785,27 @@ void list<_Tp, _Alloc>::sort()
     list<_Tp, _Alloc> __carry;
     list<_Tp, _Alloc> __counter[64];
     int __fill = 0;
+    /*
+    排序部分，下面的排序部分主要是借助merge函数来实现的
+    先归并两个元素，然后归并后面两个，再将四个归并，依次进行8个，16个。。。排好序的元素
+    */
     while (!empty()) {
-      __carry.splice(__carry.begin(), *this, begin());
+      __carry.splice(__carry.begin(), *this, begin()); // 移动头元素到carry list
       int __i = 0;
-      while(__i < __fill && !__counter[__i].empty()) {
-        __counter[__i].merge(__carry);
-        __carry.swap(__counter[__i++]);
+    //fill表示被填充的counter数组的最大下标 + 1
+    //这个循环将carry与 count[0~fill-1]进行一轮归并
+      while(__i < __fill && !__counter[__i].empty()) { 
+        __counter[__i].merge(__carry);//将carry中的数据，合并到counter链表。（合并两个已排序的链表，归并算法）
+        __carry.swap(__counter[__i++]);//排好序的数据放到carry中
       }
-      __carry.swap(__counter[__i]);         
-      if (__i == __fill) ++__fill;
+      __carry.swap(__counter[__i]); //数据交换，此时carry为空，数据到counter[i]中了      
+      if (__i == __fill) ++__fill;//counter 下标加1
     } 
 
+    //最后一轮归并
     for (int __i = 1; __i < __fill; ++__i)
       __counter[__i].merge(__counter[__i-1]);
-    swap(__counter[__fill-1]);
+    swap(__counter[__fill-1]);//*this.swap
   }
 }
 

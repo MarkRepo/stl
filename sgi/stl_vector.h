@@ -46,6 +46,11 @@ __STL_BEGIN_NAMESPACE
 // the differences between SGI-style allocators and standard-conforming
 // allocators.
 
+/*
+vector 基类用于两个目的：
+（1）构造和析构分配（但不初始化）的空间，这使得异常安全更容易
+（2）封装了SGI风格配置器和符合标准的配置器之间的不同
+*/
 #ifdef __STL_USE_STD_ALLOCATORS
 
 // Base class for ordinary allocators.
@@ -265,7 +270,7 @@ public:
   void _M_initialize_aux(_Integer __n, _Integer __value, __true_type) {
     _M_start = _M_allocate(__n);
     _M_end_of_storage = _M_start + __n; 
-    _M_finish = uninitialized_fill_n(_M_start, __n, __value);
+    _M_finish = uninitialized_fill_n(_M_start, __n, __value);// 这里有类型转化 _Integer ---> _Tp
   }
 
   template <class _InputIterator>
@@ -574,7 +579,7 @@ vector<_Tp,_Alloc>::operator=(const vector<_Tp, _Alloc>& __x)
 template <class _Tp, class _Alloc>
 void vector<_Tp, _Alloc>::_M_fill_assign(size_t __n, const value_type& __val) 
 {
-  if (__n > capacity()) {
+  if (__n > capacity()) {// n大于capacity, 重新分配，交换
     vector<_Tp, _Alloc> __tmp(__n, __val, get_allocator());
     __tmp.swap(*this);
   }
@@ -651,9 +656,10 @@ vector<_Tp, _Alloc>::_M_insert_aux(iterator __position, const _Tp& __x)
       ++__new_finish;
       __new_finish = uninitialized_copy(__position, _M_finish, __new_finish);
     }
+    //处理异常，析构已拷贝元素， 释放新分配空间
     __STL_UNWIND((destroy(__new_start,__new_finish), 
                   _M_deallocate(__new_start,__len)));
-    destroy(begin(), end());
+    destroy(begin(), end());//释放旧空间
     _M_deallocate(_M_start, _M_end_of_storage - _M_start);
     _M_start = __new_start;
     _M_finish = __new_finish;
@@ -697,27 +703,28 @@ void vector<_Tp, _Alloc>::_M_fill_insert(iterator __position, size_type __n,
                                          const _Tp& __x)
 {
   if (__n != 0) {
+    //如果后面可以容纳n个元素
     if (size_type(_M_end_of_storage - _M_finish) >= __n) {
       _Tp __x_copy = __x;
       const size_type __elems_after = _M_finish - __position;
       iterator __old_finish = _M_finish;
-      if (__elems_after > __n) {
-        uninitialized_copy(_M_finish - __n, _M_finish, _M_finish);
+      if (__elems_after > __n) {//如果position后面有大于n个元素
+        uninitialized_copy(_M_finish - __n, _M_finish, _M_finish);//把最后n个元素移到_M_finish
         _M_finish += __n;
-        copy_backward(__position, __old_finish - __n, __old_finish);
-        fill(__position, __position + __n, __x_copy);
+        copy_backward(__position, __old_finish - __n, __old_finish);//移动position后面剩下的元素到 __old_finish
+        fill(__position, __position + __n, __x_copy);//填充position后面n个元素
       }
-      else {
-        uninitialized_fill_n(_M_finish, __n - __elems_after, __x_copy);
-        _M_finish += __n - __elems_after;
-        uninitialized_copy(__position, __old_finish, _M_finish);
-        _M_finish += __elems_after;
-        fill(__position, __old_finish, __x_copy);
+      else {//如果position后面少于等于n个元素
+        uninitialized_fill_n(_M_finish, __n - __elems_after, __x_copy);//填充_M_finish后面     n - elems_after个元素
+        _M_finish += __n - __elems_after;//更新finish
+        uninitialized_copy(__position, __old_finish, _M_finish);//拷贝position后面的元素到最后面
+        _M_finish += __elems_after;//更新finish
+        fill(__position, __old_finish, __x_copy);//填充position
       }
     }
-    else {
+    else {//重新分配空间
       const size_type __old_size = size();        
-      const size_type __len = __old_size + max(__old_size, __n);
+      const size_type __len = __old_size + max(__old_size, __n); // 这里可以认为最小扩充至原来元素数量的两倍
       iterator __new_start = _M_allocate(__len);
       iterator __new_finish = __new_start;
       __STL_TRY {
@@ -728,6 +735,7 @@ void vector<_Tp, _Alloc>::_M_fill_insert(iterator __position, size_type __n,
       }
       __STL_UNWIND((destroy(__new_start,__new_finish), 
                     _M_deallocate(__new_start,__len)));
+      //析构原来的元素，释放原来的空间
       destroy(_M_start, _M_finish);
       _M_deallocate(_M_start, _M_end_of_storage - _M_start);
       _M_start = __new_start;
@@ -739,6 +747,7 @@ void vector<_Tp, _Alloc>::_M_fill_insert(iterator __position, size_type __n,
 
 #ifdef __STL_MEMBER_TEMPLATES
 
+//参考 _M_fill_insert
 template <class _Tp, class _Alloc> template <class _InputIterator>
 void 
 vector<_Tp, _Alloc>::_M_range_insert(iterator __pos, 
@@ -805,6 +814,7 @@ vector<_Tp, _Alloc>::_M_range_insert(iterator __position,
 
 #else /* __STL_MEMBER_TEMPLATES */
 
+//参考 _M_fill_insert
 template <class _Tp, class _Alloc>
 void 
 vector<_Tp, _Alloc>::insert(iterator __position, 

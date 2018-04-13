@@ -34,6 +34,7 @@
 
 __STL_BEGIN_NAMESPACE
 
+//获取len个Tp类型对象的缓冲区
 template <class _Tp>
 pair<_Tp*, ptrdiff_t> 
 __get_temporary_buffer(ptrdiff_t __len, _Tp*)
@@ -65,6 +66,7 @@ inline pair<_Tp*, ptrdiff_t> get_temporary_buffer(ptrdiff_t __len) {
 // because not all compilers support the language feature (explicit
 // function template arguments) that is required for the standard
 // version of get_temporary_buffer.
+//为了兼容那些不能显示指定函数模板参数的编译器
 template <class _Tp>
 inline pair<_Tp*, ptrdiff_t> get_temporary_buffer(ptrdiff_t __len, _Tp*) {
   return __get_temporary_buffer(__len, (_Tp*) 0);

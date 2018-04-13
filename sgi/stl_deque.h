@@ -33,6 +33,7 @@
 #ifndef __SGI_STL_INTERNAL_DEQUE_H
 #define __SGI_STL_INTERNAL_DEQUE_H
 
+//类的不变式，nonsingular 非奇异（可解引用的值总是非奇异的）
 /* Class invariants:
  *  For any nonsingular iterator i:
  *    i.node is the address of an element in the map array.  The
@@ -67,6 +68,10 @@
  * template template parameters), and it has been removed.
  */
 
+/*
+deque在以前的版本中，有一个额外的模板参数用来控制节点的大小。这个扩展事实上被证明违反了C++标准，已经被移除
+*/
+
 __STL_BEGIN_NAMESPACE 
 
 #if defined(__sgi) && !defined(__GNUC__) && (_MIPS_SIM != _MIPS_SIM_ABI32)
@@ -76,6 +81,7 @@ __STL_BEGIN_NAMESPACE
 
 // Note: this function is simply a kludge to work around several compilers'
 //  bugs in handling constant expressions.
+//这个函数只是一个混合的方案解决编译器处理常量表达式的几个bug
 inline size_t __deque_buf_size(size_t __size) {
   return __size < 512 ? size_t(512 / __size) : size_t(1);
 }

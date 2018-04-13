@@ -763,7 +763,7 @@ inline void __List_base_reverse(_List_node_base* __p)
 {
   _List_node_base* __tmp = __p;
   do {
-    __STD::swap(__tmp->_M_next, __tmp->_M_prev);
+    __STD::swap(__tmp->_M_next, __tmp->_M_prev);// 交换前后指针指向，不改变位置。
     __tmp = __tmp->_M_prev;     // Old next node is now prev.
   } while (__tmp != __p);
 }

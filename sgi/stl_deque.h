@@ -120,11 +120,13 @@ struct _Deque_iterator {
   pointer operator->() const { return _M_cur; }
 #endif /* __SGI_STL_NO_ARROW_OPERATOR */
 
+  //求两个迭代器之间的距离
   difference_type operator-(const _Self& __x) const {
     return difference_type(_S_buffer_size()) * (_M_node - __x._M_node - 1) +
       (_M_cur - _M_first) + (__x._M_last - __x._M_cur);
   }
 
+ //前自增
   _Self& operator++() {
     ++_M_cur;
     if (_M_cur == _M_last) {
@@ -133,12 +135,15 @@ struct _Deque_iterator {
     }
     return *this; 
   }
+  
+  //后自增
   _Self operator++(int)  {
     _Self __tmp = *this;
     ++*this;
     return __tmp;
   }
-
+  
+ //前自减
   _Self& operator--() {
     if (_M_cur == _M_first) {
       _M_set_node(_M_node - 1);
@@ -147,12 +152,15 @@ struct _Deque_iterator {
     --_M_cur;
     return *this;
   }
+  
+  //后自减
   _Self operator--(int) {
     _Self __tmp = *this;
     --*this;
     return __tmp;
   }
 
+ // += n
   _Self& operator+=(difference_type __n)
   {
     difference_type __offset = __n + (_M_cur - _M_first);
@@ -169,19 +177,23 @@ struct _Deque_iterator {
     return *this;
   }
 
+ // + n
   _Self operator+(difference_type __n) const
   {
     _Self __tmp = *this;
     return __tmp += __n;
   }
 
+ // -= n
   _Self& operator-=(difference_type __n) { return *this += -__n; }
- 
+
+  // -n
   _Self operator-(difference_type __n) const {
     _Self __tmp = *this;
     return __tmp -= __n;
   }
 
+  //相对于当前迭代器移动n偏移
   reference operator[](difference_type __n) const { return *(*this + __n); }
 
   bool operator==(const _Self& __x) const { return _M_cur == __x._M_cur; }
@@ -194,6 +206,7 @@ struct _Deque_iterator {
   bool operator<=(const _Self& __x) const { return !(__x < *this); }
   bool operator>=(const _Self& __x) const { return !(*this < __x); }
 
+ //设置新node， 更新first,last
   void _M_set_node(_Map_pointer __new_node) {
     _M_node = __new_node;
     _M_first = *__new_node;
@@ -254,12 +267,14 @@ protected:
   allocator_type      _M_node_allocator;
   _Map_allocator_type _M_map_allocator;
 
+ //node是一个包含buf_size个Tp的数组
   _Tp* _M_allocate_node() {
     return _M_node_allocator.allocate(__deque_buf_size(sizeof(_Tp)));
   }
   void _M_deallocate_node(_Tp* __p) {
     _M_node_allocator.deallocate(__p, __deque_buf_size(sizeof(_Tp)));
   }
+  //map是包含n个 Tp* 的数组, 每个Tp* 指向一个node(Tp数组)
   _Tp** _M_allocate_map(size_t __n) 
     { return _M_map_allocator.allocate(__n); }
   void _M_deallocate_map(_Tp** __p, size_t __n) 

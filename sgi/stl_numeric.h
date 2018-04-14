@@ -34,6 +34,7 @@
 
 __STL_BEGIN_NAMESPACE
 
+//求和
 template <class _InputIterator, class _Tp>
 _Tp accumulate(_InputIterator __first, _InputIterator __last, _Tp __init)
 {
@@ -43,6 +44,7 @@ _Tp accumulate(_InputIterator __first, _InputIterator __last, _Tp __init)
   return __init;
 }
 
+//替换加为__binary_op
 template <class _InputIterator, class _Tp, class _BinaryOperation>
 _Tp accumulate(_InputIterator __first, _InputIterator __last, _Tp __init,
                _BinaryOperation __binary_op)
@@ -53,6 +55,7 @@ _Tp accumulate(_InputIterator __first, _InputIterator __last, _Tp __init,
   return __init;
 }
 
+//求内积
 template <class _InputIterator1, class _InputIterator2, class _Tp>
 _Tp inner_product(_InputIterator1 __first1, _InputIterator1 __last1,
                   _InputIterator2 __first2, _Tp __init)
@@ -64,6 +67,7 @@ _Tp inner_product(_InputIterator1 __first1, _InputIterator1 __last1,
   return __init;
 }
 
+//替换加为op1，替换乘为op2
 template <class _InputIterator1, class _InputIterator2, class _Tp,
           class _BinaryOperation1, class _BinaryOperation2>
 _Tp inner_product(_InputIterator1 __first1, _InputIterator1 __last1,
@@ -90,7 +94,8 @@ __partial_sum(_InputIterator __first, _InputIterator __last,
   }
   return ++__result;
 }
-
+              
+//前n项和保存在result
 template <class _InputIterator, class _OutputIterator>
 _OutputIterator 
 partial_sum(_InputIterator __first, _InputIterator __last,
@@ -117,6 +122,7 @@ __partial_sum(_InputIterator __first, _InputIterator __last,
   return ++__result;
 }
 
+//加替换为op
 template <class _InputIterator, class _OutputIterator, class _BinaryOperation>
 _OutputIterator 
 partial_sum(_InputIterator __first, _InputIterator __last,
@@ -144,6 +150,7 @@ __adjacent_difference(_InputIterator __first, _InputIterator __last,
   return ++__result;
 }
 
+//result存放相邻元素差值
 template <class _InputIterator, class _OutputIterator>
 _OutputIterator
 adjacent_difference(_InputIterator __first,
@@ -172,6 +179,7 @@ __adjacent_difference(_InputIterator __first, _InputIterator __last,
   return ++__result;
 }
 
+//把差替换为op
 template <class _InputIterator, class _OutputIterator, class _BinaryOperation>
 _OutputIterator 
 adjacent_difference(_InputIterator __first, _InputIterator __last,
@@ -189,7 +197,8 @@ adjacent_difference(_InputIterator __first, _InputIterator __last,
 // Returns __x ** __n, where __n >= 0.  _Note that "multiplication"
 // is required to be associative, but not necessarily commutative.
 
- 
+
+//举个例子比较好理解：__power(2, 40) ===> __power(2, 00101000) 
 template <class _Tp, class _Integer, class _MonoidOperation>
 _Tp __power(_Tp __x, _Integer __n, _MonoidOperation __opr)
 {

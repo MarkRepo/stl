@@ -90,6 +90,7 @@ public:
   allocator_type get_allocator() const { return _M_ht.get_allocator(); }
 
 public:
+  //(1)没有初始化元素
   hash_set()
     : _M_ht(100, hasher(), key_equal(), allocator_type()) {}
   explicit hash_set(size_type __n)
@@ -101,6 +102,7 @@ public:
     : _M_ht(__n, __hf, __eql, __a) {}
 
 #ifdef __STL_MEMBER_TEMPLATES
+  //（2）迭代器版本
   template <class _InputIterator>
   hash_set(_InputIterator __f, _InputIterator __l)
     : _M_ht(100, hasher(), key_equal(), allocator_type())
@@ -121,7 +123,7 @@ public:
     : _M_ht(__n, __hf, __eql, __a)
     { _M_ht.insert_unique(__f, __l); }
 #else
-
+    //（3）value_type* 版本
   hash_set(const value_type* __f, const value_type* __l)
     : _M_ht(100, hasher(), key_equal(), allocator_type())
     { _M_ht.insert_unique(__f, __l); }
@@ -138,6 +140,7 @@ public:
     : _M_ht(__n, __hf, __eql, __a)
     { _M_ht.insert_unique(__f, __l); }
 
+//（4）const_iterator 版本
   hash_set(const_iterator __f, const_iterator __l)
     : _M_ht(100, hasher(), key_equal(), allocator_type())
     { _M_ht.insert_unique(__f, __l); }

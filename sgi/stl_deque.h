@@ -102,10 +102,10 @@ struct _Deque_iterator {
 
   typedef _Deque_iterator _Self;
 
-  _Tp* _M_cur;
-  _Tp* _M_first;
-  _Tp* _M_last;
-  _Map_pointer _M_node;
+  _Tp* _M_cur;//迭代器指向位置
+  _Tp* _M_first;//迭代器所在节点的数组开始位置
+  _Tp* _M_last;//迭代器所在节点的数组尾后位置
+  _Map_pointer _M_node;//迭代器所在节点
 
   _Deque_iterator(_Tp* __x, _Map_pointer __y) 
     : _M_cur(__x), _M_first(*__y),
@@ -372,8 +372,8 @@ protected:
 protected:
   _Tp** _M_map;
   size_t _M_map_size;  
-  iterator _M_start;
-  iterator _M_finish;
+  iterator _M_start;//第一个元素迭代器
+  iterator _M_finish;//最后一个元素后面迭代器
 
   typedef simple_alloc<_Tp, _Alloc>  _Node_alloc_type;
   typedef simple_alloc<_Tp*, _Alloc> _Map_alloc_type;
@@ -400,6 +400,7 @@ _Deque_base<_Tp,_Alloc>::~_Deque_base() {
   }
 }
 
+//初始化map
 template <class _Tp, class _Alloc>
 void
 _Deque_base<_Tp,_Alloc>::_M_initialize_map(size_t __num_elements)
@@ -422,9 +423,10 @@ _Deque_base<_Tp,_Alloc>::_M_initialize_map(size_t __num_elements)
   _M_finish._M_set_node(__nfinish - 1);
   _M_start._M_cur = _M_start._M_first;
   _M_finish._M_cur = _M_finish._M_first +
-               __num_elements % __deque_buf_size(sizeof(_Tp));
+               __num_elements % __deque_buf_size(sizeof(_Tp));// _M_finish指向最后一个节点最后一个元素后面位置
 }
 
+//创建节点
 template <class _Tp, class _Alloc>
 void _Deque_base<_Tp,_Alloc>::_M_create_nodes(_Tp** __nstart, _Tp** __nfinish)
 {
@@ -436,6 +438,7 @@ void _Deque_base<_Tp,_Alloc>::_M_create_nodes(_Tp** __nstart, _Tp** __nfinish)
   __STL_UNWIND(_M_destroy_nodes(__nstart, __cur));
 }
 
+//删除节点
 template <class _Tp, class _Alloc>
 void
 _Deque_base<_Tp,_Alloc>::_M_destroy_nodes(_Tp** __nstart, _Tp** __nfinish)
@@ -736,6 +739,7 @@ public:                         // push_* and pop_*
 
 public:                         // Insert
 
+ //在position 迭代器前面插入x
   iterator insert(iterator position, const value_type& __x) {
     if (position._M_cur == _M_start._M_cur) {
       push_front(__x);
@@ -755,6 +759,7 @@ public:                         // Insert
   iterator insert(iterator __position)
     { return insert(__position, value_type()); }
 
+ //在pos前面插入n个x
   void insert(iterator __pos, size_type __n, const value_type& __x)
     { _M_fill_insert(__pos, __n, __x); }
 
@@ -1251,6 +1256,7 @@ deque<_Tp,_Alloc>::_M_insert_aux(iterator __pos, const value_type& __x)
 {
   difference_type __index = __pos - _M_start;
   value_type __x_copy = __x;
+  //如果前面的元素更少，移动前面，pos只想插入位置
   if (size_type(__index) < this->size() / 2) {
     push_front(front());
     iterator __front1 = _M_start;
@@ -1262,7 +1268,7 @@ deque<_Tp,_Alloc>::_M_insert_aux(iterator __pos, const value_type& __x)
     ++__pos1;
     copy(__front2, __pos1, __front1);
   }
-  else {
+  else {//否则移动后面，pos只想插入位置
     push_back(back());
     iterator __back1 = _M_finish;
     --__back1;

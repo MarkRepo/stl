@@ -306,6 +306,7 @@ public:                         // Constructor, destructor, assignment.
   basic_string(const basic_string& __s) : _Base(__s.get_allocator()) 
     { _M_range_initialize(__s.begin(), __s.end()); }
 
+ //以 s 的子串 [pos, pos+n) 构造 string 。若 n == npos 或未指定 n ，或若请求的子串越过字符串的结尾，则产生的子串为 [pos, size()) 
   basic_string(const basic_string& __s, size_type __pos, size_type __n = npos,
                const allocator_type& __a = allocator_type()) 
     : _Base(__a) {
@@ -2123,6 +2124,7 @@ operator>>(basic_istream<_CharT, _Traits>& __is,
   return __is;
 }
 
+//从输入流is中读入以delim为分隔符的字符串到s中。
 template <class _CharT, class _Traits, class _Alloc>    
 basic_istream<_CharT, _Traits>& 
 getline(istream& __is,
@@ -2341,6 +2343,7 @@ getline(istream& __is, basic_string<_CharT,_Traits,_Alloc>& __s)
 
 #endif /* __STL_USE_NEW_IOSTREAMS */
 
+//将字符串s拷贝到长度为n的buffer中
 template <class _CharT, class _Traits, class _Alloc>
 void _S_string_copy(const basic_string<_CharT,_Traits,_Alloc>& __s,
                     _CharT* __buf,

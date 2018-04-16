@@ -16,6 +16,7 @@
  *   You should not attempt to use it directly.
  */
 
+//single list 单向链表
 #ifndef __SGI_STL_INTERNAL_SLIST_H
 #define __SGI_STL_INTERNAL_SLIST_H
 
@@ -33,6 +34,7 @@ struct _Slist_node_base
   _Slist_node_base* _M_next;
 };
 
+//插入new_node 到prev_node之后
 inline _Slist_node_base*
 __slist_make_link(_Slist_node_base* __prev_node,
                   _Slist_node_base* __new_node)
@@ -42,6 +44,7 @@ __slist_make_link(_Slist_node_base* __prev_node,
   return __new_node;
 }
 
+//求node的前驱节点
 inline _Slist_node_base* 
 __slist_previous(_Slist_node_base* __head,
                  const _Slist_node_base* __node)
@@ -60,6 +63,7 @@ __slist_previous(const _Slist_node_base* __head,
   return __head;
 }
 
+//移动[before_first+1, before_last+1） 到 pos后面
 inline void __slist_splice_after(_Slist_node_base* __pos,
                                  _Slist_node_base* __before_first,
                                  _Slist_node_base* __before_last)
@@ -85,6 +89,7 @@ __slist_splice_after(_Slist_node_base* __pos, _Slist_node_base* __head)
   }
 }
 
+//单链表的reverse操作
 inline _Slist_node_base* __slist_reverse(_Slist_node_base* __node)
 {
   _Slist_node_base* __result = __node;
@@ -99,6 +104,7 @@ inline _Slist_node_base* __slist_reverse(_Slist_node_base* __node)
   return __result;
 }
 
+//返回单向链表的大小
 inline size_t __slist_size(_Slist_node_base* __node)
 {
   size_t __result = 0;
@@ -211,7 +217,7 @@ protected:
 protected:
   typename _Alloc_traits<_Slist_node<_Tp>,_Allocator>::allocator_type
            _M_node_allocator;
-  _Slist_node_base _M_head;
+  _Slist_node_base _M_head;//M_head 不包含数据
 };
 
 // Specialization for instanceless allocators.
@@ -251,6 +257,7 @@ struct _Slist_base
 
 protected:
 
+ //删除pos后面的一个节点
   _Slist_node_base* _M_erase_after(_Slist_node_base* __pos)
   {
     _Slist_node<_Tp>* __next = (_Slist_node<_Tp>*) (__pos->_M_next);
@@ -260,6 +267,7 @@ protected:
     _M_put_node(__next);
     return __next_next;
   }
+  
   _Slist_node_base* _M_erase_after(_Slist_node_base*, _Slist_node_base*);
 };
 
@@ -295,6 +303,7 @@ protected:
 
 #endif /* __STL_USE_STD_ALLOCATORS */
 
+//删除(before_first, last_node)区间
 template <class _Tp, class _Alloc> 
 _Slist_node_base*
 _Slist_base<_Tp,_Alloc>::_M_erase_after(_Slist_node_base* __before_first,
@@ -640,6 +649,7 @@ public:
 public:
   // Moves the range [__before_first + 1, __before_last + 1) to *this,
   //  inserting it immediately after __pos.  This is constant time.
+  //移动一个范围
   void splice_after(iterator __pos, 
                     iterator __before_first, iterator __before_last)
   {
@@ -650,6 +660,7 @@ public:
 
   // Moves the element that follows __prev to *this, inserting it immediately
   //  after __pos.  This is constant time.
+  //移动prev后面的一个元素到pos后面
   void splice_after(iterator __pos, iterator __prev)
   {
     __slist_splice_after(__pos._M_node,
@@ -892,6 +903,7 @@ void slist<_Tp,_Alloc>::merge(slist<_Tp,_Alloc>& __x)
   }
 }
 
+//归并排序，参考stl_list.h
 template <class _Tp, class _Alloc>
 void slist<_Tp,_Alloc>::sort()
 {

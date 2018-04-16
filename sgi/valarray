@@ -179,6 +179,8 @@ public:                         // Unary operators.
   }
 
 public:                         // Scalar computed assignment.
+
+ //数值数组与单个值的运算
   valarray& operator*= (const value_type& __x) {
     for (size_t __i = 0; __i < this->size(); ++__i)
       (*this)[__i] *= __x;
@@ -240,6 +242,7 @@ public:                         // Scalar computed assignment.
   }
 
 public:                         // Array computed assignment.
+  //数值数组之间的运算
   valarray& operator*= (const valarray& __x) {
     for (size_t __i = 0; __i < this->size(); ++__i)
       (*this)[__i] *= __x[__i];
@@ -303,6 +306,7 @@ public:                         // Array computed assignment.
 public:                         // Other member functions.
 
   // The result is undefined for zero-length arrays
+  //从下标1开始与第一个元素累加
   value_type sum() const {
     return accumulate(this->_M_first + 1, this->_M_first + this->_M_size,
                       (*this)[0]);
@@ -320,12 +324,15 @@ public:                         // Other member functions.
   valarray shift(int __n) const;
   valarray cshift(int __n) const;
 
+  //对valarray执行f，值传递
   valarray apply(value_type __f(value_type)) const {
     valarray __tmp(this->size());
     transform(this->_M_first, this->_M_first + this->_M_size, __tmp._M_first,
               __f);
     return __tmp;
   }
+
+  //对valarray执行f， 引用传递
   valarray apply(value_type __f(const value_type&)) const {
     valarray __tmp(this->size());
     transform(this->_M_first, this->_M_first + this->_M_size, __tmp._M_first,
@@ -346,7 +353,7 @@ public:                         // Other member functions.
 
 // Binary arithmetic operations between two arrays.  Behavior is
 // undefined if the two arrays do not have the same length.
-
+//非成员二元函数。如果两个数组的大小不同，行为未定义
 template <class _Tp> 
 inline valarray<_Tp> operator*(const valarray<_Tp>& __x,
                                const valarray<_Tp>& __y) {
@@ -448,7 +455,7 @@ inline valarray<_Tp> operator>>(const valarray<_Tp>& __x,
 }
 
 // Binary arithmetic operations between an array and a scalar.
-
+//数组与标量之间的二元函数
 template <class _Tp> 
 inline valarray<_Tp> operator*(const valarray<_Tp>& __x, const _Tp& __c) {
   typedef typename valarray<_Tp>::_NoInit _NoInit;
@@ -632,7 +639,9 @@ inline valarray<_Tp> operator>>(const _Tp& __c, const valarray<_Tp>& __x) {
 // Binary logical operations between two arrays.  Behavior is undefined
 // if the two arrays have different lengths.  Note that operator== does
 // not do what you might at first expect.
+//两个数组之间的逻辑操作，长度不相等，行为未定义。注意 == 不是通常的含义
 
+//返回一个valarray<bool>，表示每一位的比较结果
 template <class _Tp> 
 inline valarray<bool> operator==(const valarray<_Tp>& __x,
                                  const valarray<_Tp>& __y)
@@ -718,7 +727,7 @@ inline valarray<bool> operator||(const valarray<_Tp>& __x,
 }
 
 // Logical operations between an array and a scalar.
-
+//数值数组与标量之间的逻辑操作
 template <class _Tp>
 inline valarray<bool> operator==(const valarray<_Tp>& __x, const _Tp& __c)
 {
@@ -864,8 +873,9 @@ inline valarray<bool> operator||(const _Tp& __c, const valarray<_Tp>& __x)
 }
 
 // valarray "transcendentals" (the list includes abs and sqrt, which,
-// of course, are not transcendental).
+// of course, are not transcendental（超越）).
 
+//在每个元素上执行相应的函数，返回结果数组
 template <class _Tp>
 inline valarray<_Tp> abs(const valarray<_Tp>& __x) {
   typedef typename valarray<_Tp>::_NoInit _NoInit;
@@ -1075,6 +1085,7 @@ class slice_array {
 public:
   typedef _Tp value_type;
 
+ //slice 保存slice_array的开始位置，元素个数，步长
   void operator=(const valarray<value_type>& __x) const {
     size_t __index = _M_slice.start();
     for (size_t __i = 0;
@@ -1194,7 +1205,7 @@ inline valarray<_Tp>::valarray(const slice_array<_Tp>& __x)
   typedef typename __type_traits<_Tp>::has_trivial_default_constructor
           _Is_Trivial;
   _M_initialize(_Is_Trivial());  
-  *this = __x;
+  *this = __x;//调用operator=
 }
 
 // Behavior is undefined if __x and *this have different sizes
@@ -1209,6 +1220,7 @@ valarray<_Tp>& valarray<_Tp>::operator=(const slice_array<_Tp>& __x)
   return *this;
 }
 
+//获取slice指定步长和长度的多个元素的数组
 template <class _Tp>
 valarray<_Tp> valarray<_Tp>::operator[](slice __slice) const {
   valarray<_Tp> __tmp(__slice.size(), _NoInit());
@@ -1220,6 +1232,7 @@ valarray<_Tp> valarray<_Tp>::operator[](slice __slice) const {
   return __tmp;
 }
 
+//返回用slice和当前valarray初始化的slice_array
 template <class _Tp>
 inline slice_array<_Tp> valarray<_Tp>::operator[](slice __slice) {
   return slice_array<_Tp>(__slice, *this);

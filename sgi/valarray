@@ -1242,6 +1242,23 @@ inline slice_array<_Tp> valarray<_Tp>::operator[](slice __slice) {
 // gslice and gslice_array
 
 struct _Gslice_Iter;
+/*
+参考cppreference.com,    std::gslice.
+gslice 是标识valarray下标子集的选择器，以跨度和大小的多层集定义.
+给定起始值s，跨度列表i， 以及大小列表d，从这些值构造的gslice选择下标集 k = s +　ｉ*ｄ
+例如拥有下标3，跨度为{19,4,1},长度为{2,4,3}的gslice生成下列坐标集：
+3 + 0*19 + 0*4 + 0*1 = 3,
+3 + 0*19 + 0*4 + 1*1 = 4,
+3 + 0*19 + 0*4 + 2*1 = 5,
+3 + 0*19 + 1*4 + 0*1 = 7,
+3 + 0*19 + 1*4 + 1*1 = 8,
+3 + 0*19 + 1*4 + 2*1 = 9,
+...
+3 +１*19 + 3*4 + 2*1 = 36
+
+可以构造选择某些下标多余一次的gslice对象： 若上述事例使用跨度{1,1,1}, 则下标将是{3,4,5,4,5,6,...}
+这种gslice只可用于std::valarray::operator[] 的const版本的参数，否则行为未定义
+*/
 
 class gslice {
   friend struct _Gslice_Iter;
@@ -1272,8 +1289,8 @@ public:
 
 private:
   size_t _M_start;
-  valarray<size_t> _M_lengths;
-  valarray<size_t> _M_strides;
+  valarray<size_t> _M_lengths;//长度数组
+  valarray<size_t> _M_strides;//步长数组
 };
 
 // This is not an STL iterator.  It is constructed from a gslice, and it
@@ -1291,20 +1308,26 @@ struct _Gslice_Iter {
     
   bool _M_done() const { return _M_indices[0] == _M_gslice._M_lengths[0]; }
 
+ /*
+ 关键是要理解_M_incr 的操作, 结合std:gslice 举例来理解。
+ 执行迭代器加1的操作。
+ 每次执行加1操作时都从最后一个步长开始累加，如果到达相应的步长长度计数，则往前进位（累加前一个步长）。
+ */
+ //需要注意的是这个函数是从前一个迭代器计算下一个迭代器，而不是遍历。如果有下一个，返回true，更新迭代器;否则返回false。
   bool _M_incr() {
     size_t __dim = _M_indices.size() - 1;
-    ++_M_step;
+    ++_M_step;//表示下标在下标集的下标，或者改函数执行的次数
     while (true) {
-      _M_1d_idx += _M_gslice._M_strides[__dim];
-      if (++_M_indices[__dim] != _M_gslice._M_lengths[__dim])
+      _M_1d_idx += _M_gslice._M_strides[__dim];//_M_1d_idx表示对应的一维下标
+      if (++_M_indices[__dim] != _M_gslice._M_lengths[__dim])//如果超过了相应的步长长度
         return true;
-      else if (__dim != 0) {
+      else if (__dim != 0) {//如果不是第一个步长
         _M_1d_idx -=
           _M_gslice._M_strides[__dim] * _M_gslice._M_lengths[__dim];
         _M_indices[__dim] = 0;
         --__dim;
       }
-      else
+      else//到达了最后
         return false;
     }
   }
@@ -1559,7 +1582,7 @@ private:
     : _M_mask(__mask), _M_array(__array)
     {}
 
-  valarray<bool> _M_mask;
+  valarray<bool> _M_mask;//标记 _M_array数组中哪个元素是可用的
   valarray<_Tp>& _M_array;
 
 private:                        // Disable assignment
@@ -1587,6 +1610,7 @@ inline valarray<_Tp>& valarray<_Tp>::operator=(const mask_array<_Tp>& __x) {
   return *this;
 }
 
+//valarray是 mask_array 的友元类， 可以访问私有构造函数
 template <class _Tp>
 inline mask_array<_Tp> valarray<_Tp>::operator[](const valarray<bool>& __mask)
 {
@@ -1621,6 +1645,7 @@ class indirect_array {
 public:
   typedef _Tp value_type;
 
+  //用 _M_addr数组计算_M_array的下标
   void operator=(const valarray<value_type>& __x) const {
     for (size_t __i = 0; __i < _M_addr.size(); ++__i)
       _M_array[_M_addr[__i]] = __x[__i];
@@ -1714,6 +1739,7 @@ valarray<_Tp>& valarray<_Tp>::operator=(const indirect_array<_Tp>& __x) {
   return *this;
 }
 
+//下面两个[]操作符重载函数只有返回类型不同，以及多加了一个const
 template <class _Tp>
 inline indirect_array<_Tp>
 valarray<_Tp>::operator[](const valarray<size_t>& __addr)
@@ -1741,12 +1767,12 @@ valarray<_Tp> valarray<_Tp>::shift(int __n) const
 {
   valarray<_Tp> __tmp(this->size());
 
-  if (__n >= 0) {
+  if (__n >= 0) {//数组左移
     if (__n < this->size())
       copy(this->_M_first + __n, this->_M_first + this->size(),
            __tmp._M_first);
   }
-  else {
+  else {//数组右移
     if (-__n < this->size())
       copy(this->_M_first, this->_M_first + this->size() + __n,
            __tmp._M_first - __n);
@@ -1754,6 +1780,7 @@ valarray<_Tp> valarray<_Tp>::shift(int __n) const
   return __tmp;
 }
 
+//有点像旋转
 template <class _Tp>
 valarray<_Tp> valarray<_Tp>::cshift(int __m) const
 {
@@ -1768,8 +1795,10 @@ valarray<_Tp> valarray<_Tp>::cshift(int __m) const
   if (__n < 0)
     __n += this->size();
 
+  //将前n个元素拷贝到后面n位的位置
   copy(this->_M_first,       this->_M_first + __n,
        __tmp._M_first + (this->size() - __n));
+  //将后面(size()-n)个元素拷贝到开始位置
   copy(this->_M_first + __n, this->_M_first + this->size(),
        __tmp._M_first);
 

@@ -40,15 +40,18 @@ static const int __WORD_BIT = int(CHAR_BIT*sizeof(unsigned int));
 #pragma set woff 1375
 #endif
 
+//bit的引用类，因为无法对位寻址，所以定义一个类来表示bit引用
 struct _Bit_reference {
-  unsigned int* _M_p;
-  unsigned int _M_mask;
+  unsigned int* _M_p;   //表示该bit位所在的整数值，所有的位操作都要保证不影响其他位。
+  unsigned int _M_mask; //表示该bit在整数中的哪一位
   _Bit_reference(unsigned int* __x, unsigned int __y) 
     : _M_p(__x), _M_mask(__y) {}
 
 public:
   _Bit_reference() : _M_p(0), _M_mask(0) {}
   operator bool() const { return !(!(*_M_p & _M_mask)); }
+
+  //根据x的值设置当前位
   _Bit_reference& operator=(bool __x)
   {
     if (__x)  *_M_p |= _M_mask;
@@ -74,18 +77,21 @@ inline void swap(_Bit_reference __x, _Bit_reference __y)
 
 struct _Bit_iterator_base : public random_access_iterator<bool, ptrdiff_t> 
 {
-  unsigned int* _M_p;
-  unsigned int _M_offset;
+  unsigned int* _M_p;    //所在整数值
+  unsigned int _M_offset;//偏移量
 
   _Bit_iterator_base(unsigned int* __x, unsigned int __y)
     : _M_p(__x), _M_offset(__y) {}
 
+ //向上走一步
   void _M_bump_up() {
     if (_M_offset++ == __WORD_BIT - 1) {
       _M_offset = 0;
       ++_M_p;
     }
   }
+
+  //向下走一步
   void _M_bump_down() {
     if (_M_offset-- == 0) {
       _M_offset = __WORD_BIT - 1;
@@ -93,6 +99,7 @@ struct _Bit_iterator_base : public random_access_iterator<bool, ptrdiff_t>
     }
   }
 
+ //前进n步， n可能小于0
   void _M_incr(ptrdiff_t __i) {
     difference_type __n = __i + _M_offset;
     _M_p += __n / __WORD_BIT;
@@ -104,6 +111,7 @@ struct _Bit_iterator_base : public random_access_iterator<bool, ptrdiff_t>
       _M_offset = (unsigned int) __n;
   }
 
+ //迭代器的关系运算，而非值的关系运算，也就是说比较的是位置。
   bool operator==(const _Bit_iterator_base& __i) const {
     return _M_p == __i._M_p && _M_offset == __i._M_offset;
   }

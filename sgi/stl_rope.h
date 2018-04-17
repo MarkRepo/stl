@@ -17,10 +17,11 @@
 
 // rope<_CharT,_Alloc> is a sequence of _CharT.
 // Ropes appear to be mutable, but update operations
-// really copy enough of the data structure to leave the original
+// really copy enough of the data structure to leave the original(保留原有的有效)
 // valid.  Thus ropes can be logically copied by just copying
 // a pointer value.
 
+//在C++11 已被抛弃，暂时先不看，以后有机会用到再看吧，包括ropeimpl.h
 #ifndef __SGI_STL_INTERNAL_ROPE_H
 # define __SGI_STL_INTERNAL_ROPE_H
 
